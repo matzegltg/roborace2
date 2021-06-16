@@ -12,16 +12,10 @@ import time
 ev3 = EV3Brick()
 
 #Sensors
-distanceSensor = UltrasonicSensor(Port.S4)
 
-values = []
-
-for i in range(1000):
-    distance = distanceSensor.distance()
-    print(distance)
-    values.append(distance)
-
-ev3.speaker.beep()
+for i in range(10):
+    ev3.speaker.beep()
+    wait(1000)
 
 
 

@@ -10,9 +10,9 @@ import math as m
 import time
 
                                        
-
-###### Initialising the Hardware       
-
+###########################################################
+###### Initialising the Hardware     ######################    
+###########################################################
 ev3 = EV3Brick()
 
 #Motors
@@ -40,14 +40,16 @@ for i in range(50):
     storageLight.append(normalBrightness)
     storageDistance.append(normalDistance)
     
-    
-###### Defining some helper functions
-       
+
+###########################################################    
+###### Defining some helper functions     #################
+###########################################################
+
 def driveForward(motorA, motorD, speed):
     motorA.run(-speed)
     motorD.run(-speed)
 
-#
+
 def driveSteering(motorA, motorD,  speed, steering):
     differential = steering
     
@@ -57,6 +59,8 @@ def driveSteering(motorA, motorD,  speed, steering):
     else:
         motorD.run(-speed - differential)
         motorA.run(-speed + differential)
+
+
 #Function to add value to storage of data
 def shift(arr, val):
     for i in range(len(arr) - 1):
@@ -68,47 +72,103 @@ def mean(arr):
     return sum(arr)/len(arr)
         
 def filterDistance(arr):
-    xMax = arr[0]
-    sums = 0
-    argMax = 0
-    for i in range(1,len(arr)):
-        if xMax < arr[i]:
-            xMax = arr[i]
-            argMax = i
-    
-    for i in range(len(arr)):
-        if i != argMax:
-           sums += arr[i]
-    return sums/(len(arr)-1)
-
-def lightToSteering(light):   
-    if light > 40:
-        return -80
-    if light > 25:
-        return linear(light, 25, -60, 40, -90)
-    elif light > 15:
-        return linear(light, 13, 0, 25, -60)
-    elif light > 10:
-        return linear(light, 10, 30, 13, 0)    
-    else:
-        return linear(light, 2, 100, 10, 30)
-    
-    
-def distanceToSteering(distance):
-    if distance > 500:
-        return 80
-    if distance > 250:
-        return linear(distance, 400, 40, 500 , 80)
-    elif distance > 190:
-        return linear(distance,320, 0 , 400, 40)
-    elif distance > 140:
-        return linear(distance, 240, -30, 320, 0)
-    else:
-        return linear(distance, 0, -100, 240, -30)
+    return (sum(arr) - max(arr))/len(arr)
 
 
 def linear(x, x0, y0, x1, y1):
     return (y1 - y0)/(x1 - x0) * (x - x0) + y0
+
+
+def lightToSteering(light):
+    #Reminder for Steering:
+    #Left - pos.  & Right - neg.
+    #Values between [-90 100]
+
+    #Reminder for Light Sensor:
+    #High - bright  &  Low - dark
+    #values in [2 40]
+
+    #If dark we steer left (2 -> 100) and vice versa (40 -> -90)
+
+    #Linear interpolation
+    #vk < v(k+1)
+    # v - value,  s - steering
+
+    ### Input Data ###
+    v0 = 2
+    s0 = 100
+
+    v1 = 10
+    s1 = 30
+
+    v2 = 13
+    s2 = 0
+
+    v3 = 25
+    s3 = -60
+
+    v4 = 40
+    s4 = -90
+    
+    #################
+
+    if light > v4:
+        return s4
+    if light > v3:
+        return linear(light, v3, s3, v4, s4)
+    elif light > v2:
+        return linear(light, v2, s2, v3, s3)
+    elif light > v1:
+        return linear(light, v1, s1, v2, s2)    
+    else:
+        return linear(light, v0, s0, v1, s1)
+    
+
+def distanceToSteering(distance):
+    #Reminder for Steering:
+    #Left - pos.  & Right - neg.
+    #Values between [-90 100]
+
+    #Reminder for Distance Sensor:
+    #Distance in mm and obviously the more the further away
+
+    #If close we drive right (50 (mm) -> -70)
+    
+    #Linear interpolation
+    #vk < v(k+1)
+    # v - value,  s - steering
+
+
+    ### Input Data ###
+
+    v0 = 0
+    s0 = -90
+
+    v1 = 140
+    s1 = -30
+
+    v2 = 190
+    s2 = 0
+
+    v3 = 400
+    s3 = 40
+
+    v4 = 500
+    s4 = 80
+
+    ###################
+
+    if distance > v4:
+        return s4
+    if distance > v3:
+        return linear(distance, v3, s3, v4 , s4)
+    elif distance > v2:
+        return linear(distance,v2, s2 , v3, s3)
+    elif distance > v1:
+        return linear(distance, v1, s1, v2, s2)
+    else:
+        return linear(distance, v0, s0, v1, s1)
+
 
 
 #Checking for what the current sensor in the map is
@@ -180,9 +240,9 @@ def getSteeringValue(rot, storageLight, oldMode, distanceFilter, storageDistance
     
  
     
-#####################################################################
-###########    M A I N     P R O G R A M     #############################
-#####################################################################
+###########################################################
+###########    M A I N     P R O G R A M     ##############
+###########################################################
 
 driveForward(motorA, motorD, 200)
 light = lightSensor.reflection()
