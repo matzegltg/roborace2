@@ -34,7 +34,7 @@ normalDistance = 190
 
 maxRot = 90
 maxLight = 70
-maxDistance = 500
+maxDistance = 200
 
 storageLight = []
 storageDistance = []
@@ -93,12 +93,12 @@ def lightToSteering(light):
     #vk < v(k+1)
     # v - value,  s - steering
 
-    val =   [2  ,  10,  13,  25,  40]
+    val =   [0  ,  10,  13,  25,  40]
     steer = [100,  30,   0, -60, -90]
 
-    for i in range(1,len(val)): #Checks if distance is in between some interval of val (can't be <2)
-        if distance < val[i]:
-            return linear(distance, val[i-1], steer[i-1], val[i], steer[i])
+    for i in range(1,len(val)): #Checks if distance is in between some interval of val (can't be <0)
+        if light < val[i]:
+            return linear(light, val[i-1], steer[i-1], val[i], steer[i])
     
     return steer[-1] #This is the last element 
     '''
@@ -193,6 +193,13 @@ def distanceToSteering(distance):
     '''
 
 
+#TODO
+def changeToSteeringLight():
+    pass
+
+def changeToSteeringDist():
+    pass
+
 
 #Checking for what the current sensor in the map is
 #mode: light, tunnel,    # transLtoD, transDtoL
@@ -200,19 +207,20 @@ def getMode(oldMode):
     #Cyclic method
     light = storageLight[0]
     distance = storageDistance[0]
+    print(light,distance)
     if oldMode == 'light':
         if distance < maxDistance:
-            print('ld')
-            return 'transLtoD'
-    elif oldMode == 'transLtoD':
+            print('lt')
+            return 'transLtoT'
+    elif oldMode == 'transLtoT':
         if light > maxLight:
             print('t')
             return 'tunnel'
     elif oldMode == 'tunnel':
         if light < maxLight:
-            return 'transDtoL'
-            print('dl')
-    elif oldMode == 'transDtoL':
+            return 'transTtoL'
+            print('tl')
+    elif oldMode == 'transTtoL':
         if distance > maxDistance:
             return 'light'
             print('l')
@@ -240,22 +248,19 @@ def getMode(oldMode):
 
 #@returns returns a value in the domain [-70 70] which should be the angle for the wheels (and the raw sensor data)
 def getSteeringValue(mode):
+    light = storageLight[0]
+    distance = storageDistance[0]
     
     if mode == 'light':
         steering = lightToSteering(light)
-
         change =  mean(storageLight) - light
-        storageLight = shift(storageLight, light)
         
     elif mode == 'tunnel':
         steering = distanceToSteering(distance)
-        
         change = mean(storageDistance) - distance
-        storageDistance = shift(storageDistance, distance)
         
     #TODO
-    elif mode == 'transition' or mode == 'transLtoD' or mode == 'transDtoL':
-        
+    elif mode == 'transition' or mode == 'transLtoT' or mode == 'transTtoL':
         steering = 1/2 * (lightToSteering(light) + distanceToSteering(distance))
         change = 0
 
@@ -278,7 +283,7 @@ def getSteeringValue(mode):
     print('Change: ', change)
     print('Steer: ', steering)
     '''
-
+    print(light,'uu',steering)
     return steering, mode
     
  #Meassures light and distance
@@ -309,18 +314,17 @@ for i in range(5):
 
 
 while True:
-    wait(400)
     
     observe()
     mode = getMode(mode)
 
-    '''
-    steeringVal, mode = getSteeringValue(storageLight, mode, distanceFilter, storageDistance)
+    
+    steeringVal, mode = getSteeringValue(mode)
 
     driveDifferential(motorLeft, motorRight, 200, steeringVal)
 
     steerMotor.run_target(600, steeringVal)
-    '''
+    
     #try steerMotor.run_angle -angleError and change getSteeringValue
     #rot = steerMotor.angle()
     #wait(100)
