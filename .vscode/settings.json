@@ -3,5 +3,6 @@
 	"files.eol": "\n",
 	"debug.openDebug": "neverOpen",
 	"python.linting.enabled": false,
-	"python.languageServer": "None"
+	"python.languageServer": "None",
+	"python.pythonPath": "C:\\ProgramData\\Anaconda3\\python.exe"
 }

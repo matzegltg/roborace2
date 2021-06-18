@@ -23,7 +23,8 @@ def getAngleInPosition(steerMotor):
     return 0.0
     ##########
 '''
-
+['C4/4', 'G4/4']
+speaker.play_notes(notes, tempo=120)
 
 '''
 for i in range(20):
