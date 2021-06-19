@@ -19,8 +19,8 @@ from storage import Storage
 ev3 = EV3Brick()
 
 #Motors
-motorLeft = Motor(Port.D)
-motorRight = Motor(Port.C)
+motorLeft = Motor(Port.C)
+motorRight = Motor(Port.D)
 steerMotor = Motor(Port.B)
 
 #Sensors
@@ -32,14 +32,13 @@ lightSensor = ColorSensor(Port.S2)
 normalBrightness = 13 #lightSensor.reflection() #Either by meassuring in a nother helper function or just hard code this magic numbers
 normalDistance = 190
 
-maxRot = 90
-maxLight = 70
-maxDistance = 200
+maxLight = 60
+maxDistance = 300
 
 storageLight = []
 storageDistance = []
 distanceFilter = [0, 0, 0, 0, 0]
-for i in range(50):
+for i in range(25):
     storageLight.append(normalBrightness)
     storageDistance.append(normalDistance)
     
@@ -48,17 +47,17 @@ for i in range(50):
 ###### Defining some helper functions     #################
 ###########################################################
 
-def driveForward(motorLeft, motorRight, speed):
+def driveForward(speed):
     motorLeft.run(-speed)
     motorRight.run(-speed)
 
-
+'''
 def driveDifferential(motorLeft, motorRight,  speed, steering):
     differential = speed/(maxRot * 2) * steering #Maximum differential 1/4 of speed
     
     motorLeft.run(-speed + differential)
     motorRight.run(-speed - differential)
-    
+''' 
 
 
 #Function to shift value to storage of data
@@ -92,45 +91,18 @@ def lightToSteering(light):
     #Linear interpolation
     #vk < v(k+1)
     # v - value,  s - steering
+    
+    val =   [  0,  10,  13,  17,  25,  40]
+    steer = [100,  30,   0, -40, -75, -90]
 
-    val =   [0  ,  10,  13,  25,  40]
-    steer = [100,  30,   0, -60, -90]
+    if light < 0:
+        return steer[0]
 
     for i in range(1,len(val)): #Checks if distance is in between some interval of val (can't be <0)
         if light < val[i]:
             return linear(light, val[i-1], steer[i-1], val[i], steer[i])
     
     return steer[-1] #This is the last element 
-    '''
-    ### Input Data ###
-    v0 = 2
-    s0 = 100
-
-    v1 = 10
-    s1 = 30
-
-    v2 = 13
-    s2 = 0
-
-    v3 = 25
-    s3 = -60
-
-    v4 = 40
-    s4 = -90
-    
-    #################
-
-    if light > v4:
-        return s4
-    if light > v3:
-        return linear(light, v3, s3, v4, s4)
-    elif light > v2:
-        return linear(light, v2, s2, v3, s3)
-    elif light > v1:
-        return linear(light, v1, s1, v2, s2)    
-    else:
-        return linear(light, v0, s0, v1, s1)
-    '''
     
 
 def distanceToSteering(distance):
@@ -149,18 +121,170 @@ def distanceToSteering(distance):
 
 
     ### Input Data ###
-
-    #even shorter
     
-    val =   [  0,  50, 140, 190, 400, 500]
-    steer = [-90, -90, -40,   0,  40,  80]
+    #valD =   [  0, 140, 190, 250, 400, 500]
+    #steer = [-90, -90, -20,  20,  40,  70]
+    valD = [  0, 150, 450, 600]
+    steer= [-90, -90,  50,  70]
 
-    for i in range(1,len(val)): #Checks if distance is in between some interval (can't be <0)
-        if distance < val[i]:
-            return linear(distance, val[i-1], steer[i-1], val[i], steer[i])
+    if distance < 0:
+        return steer[0]
+
+    for i in range(1,len(valD)): #Checks if distance is in between some interval
+        if distance < valD[i]:
+            return linear(distance, valD[i-1], steer[i-1], valD[i], steer[i])
     
     return steer[-1] #This is the last element 
+    
+
+
+#TODO
+def changeToSteeringLight():
+    pass
+
+def changeToSteeringDist():
+    pass
+
+
+#Checking for what the current sensor in the map is
+#mode: light, tunnel,    # transLtoD, transDtoL
+def getMode(oldMode):
+    #Cyclic method
+    light = storageLight[0]
+    distance = storageDistance[0]
+    if oldMode == 'light':
+        if distance < maxDistance:
+            ev3.speaker.beep(200)
+            return 'transLtoT'
+
+    elif oldMode == 'transLtoT':
+        if light > maxLight:
+            ev3.speaker.beep(400)
+            return 'tunnel'
+
+    elif oldMode == 'tunnel':
+        if light < maxLight:
+            ev3.speaker.beep(800)
+            return 'transTtoL'
+            
+    elif oldMode == 'transTtoL':
+        if distance > maxDistance:
+            ev3.speaker.beep(1600)
+            return 'light'
+
+    return oldMode
     '''
+    This is the not cyclic method
+
+    if light > maxLight and distance > 20: #TODO Change -20- : Add the appropriate value for which distance the light should be the color of the tunnel
+        return 'tunnel'
+    elif distance > maxDistance:
+        return 'tunnel'
+    else:
+        return 'transition'
+    '''
+
+
+
+
+#Function to evaluate how much to steer according to which part of the track the bot is
+#@requires everything being initialized the right way
+#@ensures motor is not changed
+
+#@returns returns a value in the domain [-70 70] which should be the angle for the wheels (and the raw sensor data)
+def getSteeringValue(mode):
+    light = storageLight[0]
+    distance = storageDistance[0]
+    
+    if mode == 'light':
+        change =  light - mean(storageLight)
+        print('LightChange: ', change)
+        #We interpolate the curvature of the car and pretend he is already further
+        fac = 1
+        inter = light + fac * change
+        print('Evaluated Value: ', inter)
+        steering = lightToSteering(inter)
+        print('Steer: ', steering)
+        
+    elif mode == 'tunnel':
+        change = distance - mean(storageDistance)
+        print('DistanceChange: ', change)
+        fac1 = 2
+        inter = distance + fac1 * change
+        steering = distanceToSteering(inter)
+        
+        print('Evaluated Value: ', inter, steering)
+        
+        
+    #TODO
+    elif mode == 'transLtoT' or mode == 'transTtoL':
+        steering = 1/2 * (lightToSteering(light) + distanceToSteering(distance))
+        change = 0
+
+    return steering
+    
+ #Meassures light and distance
+ #Writes them in the first entry of storageDistance and storageLight respectivly
+def observe():
+    light = lightSensor.reflection()
+
+    
+    distance =distanceSensor.distance()
+
+    shift(storageLight, light)
+    shift(storageDistance, distance)
+    
+
+###########################################################
+###########    M A I N     P R O G R A M     ##############
+###########################################################
+
+driveForward(300)
+
+mode = 'light'
+
+
+
+while True:
+    
+    observe()
+    #mode = getMode(mode)
+    mode = 'tunnel'
+    steeringVal = getSteeringValue(mode)
+
+    steerMotor.run_target(600, steeringVal)
+    
+    
+
+#### TO DO ####
+
+# Ultraschall Fehlerhafte Messungen Filtern
+
+###################
+####Other Ideas####
+###################
+
+
+# try steerMotor.run_angle -angleError and change getSteeringValue
+#rot = steerMotor.angle()
+#wait(100)
+
+#Filtering
+#Light signal gets filtered, but after some investigation I think this step is not really necessary
+'''
+rawDistance = distanceSensor.distance()
+shift(distanceFilter, rawDistance)
+distance = filter(distanceFilter)
+print(distanceFilter)
+'''
+
+'''
+for i in range(5):
+    distanceFilter[i] = distance
+''' 
+
+#Old Method of steering val
+'''
 
 
     v0 = 0
@@ -191,149 +315,6 @@ def distanceToSteering(distance):
     else:
         return linear(distance, v0, s0, v1, s1)
     '''
-
-
-#TODO
-def changeToSteeringLight():
-    pass
-
-def changeToSteeringDist():
-    pass
-
-
-#Checking for what the current sensor in the map is
-#mode: light, tunnel,    # transLtoD, transDtoL
-def getMode(oldMode):
-    #Cyclic method
-    light = storageLight[0]
-    distance = storageDistance[0]
-    print(light,distance)
-    if oldMode == 'light':
-        if distance < maxDistance:
-            print('lt')
-            return 'transLtoT'
-    elif oldMode == 'transLtoT':
-        if light > maxLight:
-            print('t')
-            return 'tunnel'
-    elif oldMode == 'tunnel':
-        if light < maxLight:
-            return 'transTtoL'
-            print('tl')
-    elif oldMode == 'transTtoL':
-        if distance > maxDistance:
-            return 'light'
-            print('l')
-    return oldMode
-    '''
-    This is the not cyclic method
-
-    if light > maxLight and distance > 20: #TODO Change -20- : Add the appropriate value for which distance the light should be the color of the tunnel
-        print('Joni ist im Tunnel')
-        return 'tunnel'
-    elif distance > maxDistance:
-        print('högedüge')
-        return 'tunnel'
-    else:
-        print('Ich bin toll')
-        return 'tunnel'
-    '''
-
-
-
-
-#Function to evaluate how much to steer according to which part of the track the bot is
-#@requires everything being initialized the right way
-#@ensures motor is not changed
-
-#@returns returns a value in the domain [-70 70] which should be the angle for the wheels (and the raw sensor data)
-def getSteeringValue(mode):
-    light = storageLight[0]
-    distance = storageDistance[0]
-    
-    if mode == 'light':
-        steering = lightToSteering(light)
-        change =  mean(storageLight) - light
-        
-    elif mode == 'tunnel':
-        steering = distanceToSteering(distance)
-        change = mean(storageDistance) - distance
-        
-    #TODO
-    elif mode == 'transition' or mode == 'transLtoT' or mode == 'transTtoL':
-        steering = 1/2 * (lightToSteering(light) + distanceToSteering(distance))
-        change = 0
-
-    '''
-    changeFactor = 1.5
-    expectedValue = steering + changeFactor * change
-    if expectedValue <= 100:
-        if expectedValue >= -100:
-            steering = expectedValue
-    '''
-    
-    #print('Mode: ', mode)
-    #print("change" + str(change))
-
-    '''
-    wait(3000)
-    print('Mode: ', mode)
-    print('Distance: ',distance)
-    print('Light: ',light)
-    print('Change: ', change)
-    print('Steer: ', steering)
-    '''
-    print(light,'uu',steering)
-    return steering, mode
-    
- #Meassures light and distance
- #Writes them in the first entry of storageDistance and storageLight respectivly
-def observe():
-    light = lightSensor.reflection()
-
-    #Light signal gets filtered, but after some investigation I think this step is not really necessary
-    rawDistance = distanceSensor.distance()
-    shift(distanceFilter, rawDistance)
-    distance = filter(distanceFilter)
-
-
-    shift(storageLight, light)
-    shift(storageDistance, distance)
-    
-
-###########################################################
-###########    M A I N     P R O G R A M     ##############
-###########################################################
-
-light = lightSensor.reflection()
-distance = distanceSensor.distance()
-mode = 'light'
-for i in range(5):
-    distanceFilter[i] = distance
-    
-
-
-while True:
-    
-    observe()
-    mode = getMode(mode)
-
-    
-    steeringVal, mode = getSteeringValue(mode)
-
-    driveDifferential(motorLeft, motorRight, 200, steeringVal)
-
-    steerMotor.run_target(600, steeringVal)
-    
-    #try steerMotor.run_angle -angleError and change getSteeringValue
-    #rot = steerMotor.angle()
-    #wait(100)
-
-#### TO DO ####
-
-# Ultraschall Fehlerhafte Messungen Filtern
-
-
 
 '''
 GENERAL INFORMATION 

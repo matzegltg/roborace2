@@ -1,4 +1,6 @@
 '''
+####### CAUTION ######
+NOT IN USE:
 Class to handle storage tools
 '''
 
