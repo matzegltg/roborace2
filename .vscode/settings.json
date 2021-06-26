@@ -4,5 +4,5 @@
 	"debug.openDebug": "neverOpen",
 	"python.linting.enabled": false,
 	"python.languageServer": "None",
-	"python.pythonPath": "C:\\ProgramData\\Anaconda3\\python.exe"
+	"python.pythonPath": "C:\\Users\\Jonathan\\AppData\\Local\\Programs\\Python\\Python38\\python.exe"
 }

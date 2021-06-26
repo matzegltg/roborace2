@@ -41,12 +41,25 @@ Remove Beep when changing mode
 Remove tests
 ____________________________________________________________________________________________________
 '''
-                                       
+###########################################################
+###### Fun                           ######################    
+###########################################################
+
+ev3 = EV3Brick()
+ev3.speaker.say('Welcome home team 1.FC Fleischkäsweckle')
+notes = ['C4/4', 'C4/4', 'G4/4', 'G4/4']
+ev3.speaker.play_notes(notes, tempo=120)
+
+
+
+
+
+
 ###########################################################
 ###### Initialising the Hardware     ######################    
 ###########################################################
-ev3 = EV3Brick()
-ev3.speaker.say('Welcome home team 1.FC Fleischkäsweckle')
+
+
 #Motors
 motorLeft = Motor(Port.C)
 motorRight = Motor(Port.D)
@@ -298,14 +311,13 @@ def observe():
 ###########    M A I N     P R O G R A M     ##############
 ###########################################################
 
-driveForward(5) #Speed
+driveForward(100) #Speed
 
 mode = 'light' #Starting Position
 
 
 
 while True:
-    wait(10)
     observe()
 
     #mode = getMode(mode)
@@ -315,6 +327,7 @@ while True:
     steerMotor.run_target(600, steeringVal)
 
     if(stopTrigger.pressed()):
+        driveForward(0)
         ev3.speaker.say('Programm ended')
         break
 
@@ -327,7 +340,6 @@ while True:
         wait(1000)
 
     
-
 print('testLV = ',testLV, ';')
 print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
 print('testLC = ', testLC, ';')
