@@ -14,23 +14,39 @@ from storage import Storage
 
 
 '''
+____________________________________________________________________________________________________
 GENERAL INFORMATION 
 
 This is the code for a self driving car - just worse
 
-If you want to understand the code it may be useful to understand, that I always change global variables in functions. That is ugly and shouldn't
-be done but it was the most easiest way and it's working.
+If you want to understand the code it may be useful to understand, that I always change global variables 
+in functions. That is ugly and shouldn't be done but it was the most easiest way and it's working.
 
 For example: observe() meassures light and distance and then add it to the storage
+____________________________________________________________________________________________________
+Important variables
 
+maxDistance - if out tunnel
+maxLight - if in tunnel
+
+steering function interpolation values
+
+____________________________________________________________________________________________________
+TO DO
+
+Ultraschall Fehlerhafte Messungen Filtern
+optimize Factor of change
+
+Remove Beep when changing mode
+Remove tests
+____________________________________________________________________________________________________
 '''
-
                                        
 ###########################################################
 ###### Initialising the Hardware     ######################    
 ###########################################################
 ev3 = EV3Brick()
-
+ev3.speaker.say('Welcome home team 1.FC Fleischkäsweckle')
 #Motors
 motorLeft = Motor(Port.C)
 motorRight = Motor(Port.D)
@@ -55,6 +71,20 @@ for i in range(25):
     storageLight.append(normalBrightness)
     storageDistance.append(normalDistance)
     
+
+#################
+# T E S T I N G #
+#################
+stopTrigger = TouchSensor(Port.S4) #right
+changeMode = TouchSensor(Port.S1) # left
+testLV = []
+testLC = []
+testDV = []
+testDC = []
+testSteering = []
+
+
+
 
 ###########################################################    
 ###### Defining some helper functions     #################
@@ -182,6 +212,7 @@ def getMode(oldMode):
 
     return oldMode
 
+
 ##### S T E E R I N G #####
 
 #Function to evaluate how much to steer according to which part of the track the bot is
@@ -190,24 +221,26 @@ def getSteeringValue(mode):
     light = storageLight[0] #current measurement 
     distance = storageDistance[0]
     
+
+
     if mode == 'light':
         change =  light - mean(storageLight)
-        print('LightChange: ', change)
+
+
         #We interpolate the curvature of the car and pretend it is already further
-        fac = 0.1
+        fac = 0
         inter = light + fac * change
-        print('Evaluated Value: ', inter)
         steering = lightToSteering(inter)
-        print('Steer: ', steering)
         
     elif mode == 'tunnel':
         change = distance - mean(storageDistance)
-        print('DistanceChange: ', change)
-        fac1 = 2
+        
+
+
+        fac1 = 0
         inter = distance + fac1 * change
         steering = distanceToSteering(inter)
         
-        print('Evaluated Value: ', inter, steering)
         
         
     #TODO
@@ -215,8 +248,30 @@ def getSteeringValue(mode):
         steering = 1/2 * (lightToSteering(light) + distanceToSteering(distance))
         change = 0
 
+
+
+    ##################################
+    # R E M O V E   
+    #Storing Values to gain information
+
+    
+    testLV.append(light)
+    testDV.append(distance)
+    testSteering.append(steering)
+    if mode =='tunnel':
+        testDC.append(change)
+        testLC.append(0)
+    else:
+        testDC.append(0)
+        testLC.append(change)
+    
+    ###################################
+
+
+
     return steering
     
+
 
 
 ##### S E N S O R S #####
@@ -233,33 +288,55 @@ def observe():
     shift(storageDistance, distance)
     
 
+
+
+
+
+
+
 ###########################################################
 ###########    M A I N     P R O G R A M     ##############
 ###########################################################
 
-driveForward(500) #Speed
+driveForward(5) #Speed
 
 mode = 'light' #Starting Position
 
 
 
 while True:
-    
+    wait(10)
     observe()
 
-    mode = getMode(mode)
+    #mode = getMode(mode)
     
     steeringVal = getSteeringValue(mode)
 
     steerMotor.run_target(600, steeringVal)
+
+    if(stopTrigger.pressed()):
+        ev3.speaker.say('Programm ended')
+        break
+
+    if(changeMode.pressed()):
+        ev3.speaker.say('Changing mode')
+        if mode == 'light':
+            mode = 'tunnel'
+        else:
+            mode = 'light'
+        wait(1000)
+
     
 
-
-
-#### TO DO ####
-
-# Ultraschall Fehlerhafte Messungen Filtern
-# Remove Beep when changing mode
+print('testLV = ',testLV, ';')
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+print('testLC = ', testLC, ';')
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+print('testDV = ',testDV, ';')
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+print('testDC = ',testDC,';')
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+print('testSteering = ',testSteering,';')
 
 ###################
 ####Other Ideas####
@@ -284,35 +361,20 @@ for i in range(5):
     distanceFilter[i] = distance
 ''' 
 
-#Old Method of steering val
+
+
+#Get mode
 '''
-
-
-    v0 = 0
-    s0 = -90
-
-    v1 = 140
-    s1 = -30
-
-    v2 = 190
-    s2 = 0
-
-    v3 = 400
-    s3 = 40
-
-    v4 = 500
-    s4 = 80
-
-    ###################
-
-    if distance > v4:
-        return s4
-    if distance > v3:
-        return linear(distance, v3, s3, v4 , s4)
-    elif distance > v2:
-        return linear(distance,v2, s2 , v3, s3)
-    elif distance > v1:
-        return linear(distance, v1, s1, v2, s2)
-    else:
-        return linear(distance, v0, s0, v1, s1)
+    #Smaller but the change section goes nuts
+    light = storageLight[0]
+    distance = storageDistance[0]
+    if oldMode == 'light':
+        if distance < maxDistance:
+            ev3.speaker.beep(200)
+            return 'tunnel'
+    elif oldMode == 'tunnel':
+        if light < maxLight:
+            ev3.speaker.beep(800)
+            return 'light'
+    return oldMode
     '''
