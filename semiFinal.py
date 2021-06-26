@@ -12,6 +12,19 @@ import time
 #Possible
 from storage import Storage
 
+
+'''
+GENERAL INFORMATION 
+
+This is the code for a self driving car - just worse
+
+If you want to understand the code it may be useful to understand, that I always change global variables in functions. That is ugly and shouldn't
+be done but it was the most easiest way and it's working.
+
+For example: observe() meassures light and distance and then add it to the storage
+
+'''
+
                                        
 ###########################################################
 ###### Initialising the Hardware     ######################    
@@ -51,14 +64,12 @@ def driveForward(speed):
     motorLeft.run(-speed)
     motorRight.run(-speed)
 
-'''
-def driveDifferential(motorLeft, motorRight,  speed, steering):
-    differential = speed/(maxRot * 2) * steering #Maximum differential 1/4 of speed
-    
-    motorLeft.run(-speed + differential)
-    motorRight.run(-speed - differential)
-''' 
+#Evaluates a linear function defined by two given points
+def linear(x, x0, y0, x1, y1):
+    return (y1 - y0)/(x1 - x0) * (x - x0) + y0
 
+
+##### A R R A Y   F U N C T I O N S #####
 
 #Function to shift value to storage of data
 def shift(arr, val):
@@ -72,25 +83,30 @@ def mean(arr):
 def filter(arr):
     return (sum(arr) - max(arr))/len(arr)
 
-#Evaluates a linear function defined by two given points
-def linear(x, x0, y0, x1, y1):
-    return (y1 - y0)/(x1 - x0) * (x - x0) + y0
 
 
-def lightToSteering(light):
-    #Reminder for Steering:
+
+
+##### S T E E R   F U N C T I O N S #####
+
+#Reminder for Steering:
     #Left - pos.  & Right - neg.
     #Values between [-90 100]
 
-    #Reminder for Light Sensor:
+
+#Function is a semi linear function - see plots in the file for information
+    #lightToSteeringPlot.png
+    #distanceToSteeringPlot.png
+    
+    
+    
+#Reminder for Light Sensor:
     #High - bright  &  Low - dark
-    #values in [2 40]
+    #values in [0 40]
 
-    #If dark we steer left (2 -> 100) and vice versa (40 -> -90)
-
-    #Linear interpolation
-    #vk < v(k+1)
-    # v - value,  s - steering
+    #If dark we steer left (0 -> 100) and vice versa (40 -> -90)
+def lightToSteering(light):
+    
     
     val =   [  0,  10,  13,  17,  25,  40]
     steer = [100,  30,   0, -40, -75, -90]
@@ -103,25 +119,14 @@ def lightToSteering(light):
             return linear(light, val[i-1], steer[i-1], val[i], steer[i])
     
     return steer[-1] #This is the last element 
-    
 
-def distanceToSteering(distance):
-    #Reminder for Steering:
-    #Left - pos.  & Right - neg.
-    #Values between [-90 100]
 
-    #Reminder for Distance Sensor:
+#Reminder for Distance Sensor:
     #Distance in mm and obviously the more the further away
 
     #If close we drive right (50 (mm) -> -70)
-    
-    #Linear interpolation
-    #vk < v(k+1)
-    # v - value,  s - steering
-
-
+def distanceToSteering(distance):
     ### Input Data ###
-    
     #valD =   [  0, 140, 190, 250, 400, 500]
     #steer = [-90, -90, -20,  20,  40,  70]
     valD = [  0, 150, 450, 600]
@@ -145,6 +150,9 @@ def changeToSteeringLight():
 def changeToSteeringDist():
     pass
 
+
+
+##### M O D E #####
 
 #Checking for what the current sensor in the map is
 #mode: light, tunnel,    # transLtoD, transDtoL
@@ -173,34 +181,20 @@ def getMode(oldMode):
             return 'light'
 
     return oldMode
-    '''
-    This is the not cyclic method
 
-    if light > maxLight and distance > 20: #TODO Change -20- : Add the appropriate value for which distance the light should be the color of the tunnel
-        return 'tunnel'
-    elif distance > maxDistance:
-        return 'tunnel'
-    else:
-        return 'transition'
-    '''
-
-
-
+##### S T E E R I N G #####
 
 #Function to evaluate how much to steer according to which part of the track the bot is
-#@requires everything being initialized the right way
-#@ensures motor is not changed
-
 #@returns returns a value in the domain [-70 70] which should be the angle for the wheels (and the raw sensor data)
 def getSteeringValue(mode):
-    light = storageLight[0]
+    light = storageLight[0] #current measurement 
     distance = storageDistance[0]
     
     if mode == 'light':
         change =  light - mean(storageLight)
         print('LightChange: ', change)
-        #We interpolate the curvature of the car and pretend he is already further
-        fac = 1
+        #We interpolate the curvature of the car and pretend it is already further
+        fac = 0.1
         inter = light + fac * change
         print('Evaluated Value: ', inter)
         steering = lightToSteering(inter)
@@ -223,6 +217,10 @@ def getSteeringValue(mode):
 
     return steering
     
+
+
+##### S E N S O R S #####
+
  #Meassures light and distance
  #Writes them in the first entry of storageDistance and storageLight respectivly
 def observe():
@@ -239,26 +237,29 @@ def observe():
 ###########    M A I N     P R O G R A M     ##############
 ###########################################################
 
-driveForward(300)
+driveForward(500) #Speed
 
-mode = 'light'
+mode = 'light' #Starting Position
 
 
 
 while True:
     
     observe()
-    #mode = getMode(mode)
-    mode = 'tunnel'
+
+    mode = getMode(mode)
+    
     steeringVal = getSteeringValue(mode)
 
     steerMotor.run_target(600, steeringVal)
     
-    
+
+
 
 #### TO DO ####
 
 # Ultraschall Fehlerhafte Messungen Filtern
+# Remove Beep when changing mode
 
 ###################
 ####Other Ideas####
@@ -315,13 +316,3 @@ for i in range(5):
     else:
         return linear(distance, v0, s0, v1, s1)
     '''
-
-'''
-GENERAL INFORMATION 
-
-If you want to understand the code it may be useful to understand, that I always change global variables in functions. That is ugly and shouldn't
-be done but it was the most easiest way and it's working.
-
-For example: observe() gets meassures light and distance and then add it to the storage
-
-'''
