@@ -200,7 +200,7 @@ def changeToSteeringDist():
 ##### M O D E #####
 
 #Checking for what the current sensor in the map is
-#mode: light, tunnel,    # transLtoD, transDtoL
+#mode: light, tunnel,    #transLtoD, transDtoL
 def getMode(oldMode):
     #Cyclic method
     light = storageLight[0]
