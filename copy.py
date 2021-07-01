@@ -212,17 +212,17 @@ def getMode(oldMode):
 
     elif oldMode == 'transLtoT':
         if light > maxLight:
-            ev3.speaker.beep(200)
+            ev3.speaker.beep(400)
             return 'tunnel'
 
     elif oldMode == 'tunnel':
         if light < maxLight:
+            ev3.speaker.beep(800)
             return 'transTtoL'
             
     elif oldMode == 'transTtoL':
-        
         if distance > maxDistance:
-            ev3.speaker.beep(500)
+            ev3.speaker.beep(1600)
             return 'light'
 
     return oldMode
@@ -264,9 +264,8 @@ def getSteeringValue(mode):
         
     #TODO
     elif mode == 'transTtoL':
-        #steering = 1/2 * (lightToSteering(light) + distanceToSteering(distance))
-        steering = -90
-        #Das ist natürlich fürchterlich
+        steering = 1/2 * (lightToSteering(light) + distanceToSteering(distance))
+        change = 0
 
     ##################################
     # R E M O V E   
@@ -322,7 +321,7 @@ def observe():
 ###########    M A I N     P R O G R A M     ##############
 ###########################################################
 
-speed = 800
+speed = 400
 
 driveForward(speed) 
 
@@ -339,8 +338,29 @@ while True:
 
     steerMotor.run_target(800, steeringVal,Stop.HOLD,False)
 
+    
+    if(stopTrigger.pressed()):
+        driveForward(0)
+        ev3.speaker.say('Programm ended')
+        break
+
+    if(changeMode.pressed()):
+        ev3.speaker.beep()
+        if mode == 'light':
+            mode = 'tunnel'
+        else:
+            mode = 'light'
 
     
+print('testLV = ',testLV, ';')
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+#print('testLC = ', testLC, ';')
+#print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+print('testDV = ',testDV, ';')
+#print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+#print('testDC = ',testDC,';')
+print('%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%')
+print('testSteering = ',testSteering,';')
 
 '''
 
