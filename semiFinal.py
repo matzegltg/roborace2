@@ -46,8 +46,8 @@ ________________________________________________________________________________
 ###########################################################
 
 ev3 = EV3Brick()
-ev3.speaker.say('Welcome home team 1.FC Fleischkäsweckle')
-notes = ['C4/4', 'C4/4', 'G4/4', 'G4/4']
+ev3.speaker.say('Lets go 1.FC Fleischkäsweckle')
+notes = ['C4/4', 'E4/4', 'A4/8', 'G4/2', 'E5/8','D5/2'] #Robo Melody
 ev3.speaker.play_notes(notes, tempo=120)
 
 
@@ -152,7 +152,7 @@ def lightToSteering(light):
     
     
     val =   [  0,  10,  13,  17,  25,  40]
-    steer = [100,  30,   0, -40, -75, -90]
+    steer = [90,  30,   0, -40, -75, -90]
 
     if light < 0:
         return steer[0]
@@ -241,7 +241,7 @@ def getSteeringValue(mode):
 
 
         #We interpolate the curvature of the car and pretend it is already further
-        fac = 0
+        fac = 1
         inter = light + fac * change
         steering = lightToSteering(inter)
         
@@ -250,7 +250,7 @@ def getSteeringValue(mode):
         
 
 
-        fac1 = 0
+        fac1 = 5
         inter = distance + fac1 * change
         steering = distanceToSteering(inter)
         
@@ -311,7 +311,7 @@ def observe():
 ###########    M A I N     P R O G R A M     ##############
 ###########################################################
 
-driveForward(100) #Speed
+driveForward(300) #Speed
 
 mode = 'light' #Starting Position
 
@@ -332,12 +332,11 @@ while True:
         break
 
     if(changeMode.pressed()):
-        ev3.speaker.say('Changing mode')
+        ev3.speaker.beep()
         if mode == 'light':
             mode = 'tunnel'
         else:
             mode = 'light'
-        wait(1000)
 
     
 print('testLV = ',testLV, ';')
